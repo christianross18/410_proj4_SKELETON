@@ -22,8 +22,9 @@ Waiter::~Waiter()
 int Waiter::getNext(ORDER &anOrder){
 	int i=myIO.getNext(anOrder);
 	if(i!=SUCCESS){
-		return FAIL;
+		return NO_ORDERS;
 	}
+
 	return SUCCESS;
 }
 //contains a loop that will get orders from filename one at a time
@@ -33,8 +34,20 @@ int Waiter::getNext(ORDER &anOrder){
 //it is done using b_WaiterIsFinished
 void Waiter::beWaiter() {
 	ORDER a;
-	while(getNext(a) == SUCCESS){
-		order_in_Q.push(a);
+	b_WaiterIsFinished=false;
+	{
+		while(getNext(a) == SUCCESS){
+			{
+				lock_guard<mutex> lck(mutex_order_inQ);
+				order_in_Q.push(a);
+			}
+			cv_order_inQ.notify_one();
+		}
 	}
+	{
+		lock_guard<mutex> lck(mutex_order_inQ);
+		b_WaiterIsFinished=true;
+	}
+	cv_order_inQ.notify_all();
 }
 

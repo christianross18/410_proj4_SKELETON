@@ -86,7 +86,16 @@ void audit_results() {
 
 int main()
 {
-	//TODO your code here
+	vector<thread> threads;
+	int t = std::thread::hardware_concurrency();
+	threads.push_back(thread(doWaiter, 1, "./in3.txt"));
+	for(int i = 0;i<t-1;i++){
+		threads.push_back(thread(doBaker, i));
+	}
+	for(int i = 0;i<t;i++){
+		threads[i].join();
+	}
+	audit_results();
 	return SUCCESS;
 }
 

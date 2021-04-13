@@ -17,11 +17,12 @@ Baker::~Baker()
 //1 with 12 donuts, 1 with 1 donut
 void Baker::bake_and_box(ORDER &anOrder) {
 	int originial = anOrder.number_donuts;
+
 	while(anOrder.number_donuts>0){
 		Box b;
-		while(b.size()<12){
-			DONUT d;
-			b.addDonut(d);
+		DONUT d;
+		while(anOrder.number_donuts>0 && b.addDonut(d)){
+			anOrder.number_donuts--;
 		}
 		anOrder.boxes.push_back(b);
 	}
@@ -38,11 +39,23 @@ void Baker::bake_and_box(ORDER &anOrder) {
 //when either order_in_Q.size() > 0 or b_WaiterIsFinished == true
 //hint: wait for something to be in order_in_Q or b_WaiterIsFinished == true
 void Baker::beBaker() {
-	while(!b_WaiterIsFinished){
-		while(!order_in_Q.empty()){
-			ORDER a=order_in_Q.front();
+	ORDER a;
+
+	while(true){
+		{
+			unique_lock<mutex> lck(mutex_order_inQ);
+			while(order_in_Q.empty() && !b_WaiterIsFinished){
+				cv_order_inQ.wait(lck);
+			}
+			if(order_in_Q.empty() && b_WaiterIsFinished){
+				break;
+			}
+			a=order_in_Q.front();
 			order_in_Q.pop();
-			bake_and_box(a);
+		}
+		bake_and_box(a);
+		{
+			lock_guard<mutex> lck(mutex_order_outQ);
 			order_out_Vector.push_back(a);
 		}
 	}
